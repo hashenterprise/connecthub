@@ -1,12 +1,20 @@
 import { create } from 'zustand';
 
+interface Place {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  // Add other place properties as needed
+}
+
 interface LocationState {
   currentLocation: { lat: number; lng: number };
-  nearbyPlaces: any[];
+  nearbyPlaces: Place[];
   isLoading: boolean;
   error: string | null;
   setCurrentLocation: (location: { lat: number; lng: number }) => void;
-  setNearbyPlaces: (places: any[]) => void;
+  setNearbyPlaces: (places: Place[]) => void;
   searchNearbyPlaces: (query: string) => Promise<void>;
 }
 

@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  // Add other user properties as needed
+}
+
 interface UserState {
-  user: any | null;
+  user: User | null;
   isLoading: boolean;
   error: string | null;
-  setUser: (user: any) => void;
-  updateUser: (data: Partial<any>) => void;
+  setUser: (user: User) => void;
+  updateUser: (data: Partial<User>) => void;
   logout: () => void;
 }
 

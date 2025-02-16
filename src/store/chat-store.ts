@@ -1,38 +1,38 @@
 import { create } from 'zustand';
 
-interface Message {
+interface Place {
   id: string;
-  content: string;
-  senderId: string;
-  receiverId: string;
-  createdAt: Date;
+  name: string;
+  lat: number;
+  lng: number;
+  // Add other place properties as needed
 }
 
-interface ChatState {
-  messages: Message[];
+interface LocationState {
+  currentLocation: { lat: number; lng: number };
+  nearbyPlaces: Place[];
   isLoading: boolean;
   error: string | null;
-  addMessage: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
-  fetchMessages: (chatId: string) => Promise<void>;
+  setCurrentLocation: (location: { lat: number; lng: number }) => void;
+  setNearbyPlaces: (places: Place[]) => void;
+  searchNearbyPlaces: (query: string) => Promise<void>;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
-  messages: [],
+export const useLocationStore = create<LocationState>((set) => ({
+  currentLocation: { lat: 0, lng: 0 },
+  nearbyPlaces: [],
   isLoading: false,
   error: null,
-  addMessage: (message) => set((state) => ({
-    messages: [...state.messages, message]
-  })),
-  setMessages: (messages) => set({ messages }),
-  fetchMessages: async (chatId) => {
+  setCurrentLocation: (location) => set({ currentLocation: location }),
+  setNearbyPlaces: (places) => set({ nearbyPlaces: places }),
+  searchNearbyPlaces: async (query) => {
     set({ isLoading: true });
     try {
-      const response = await fetch(`/api/chats/${chatId}/messages`);
+      const response = await fetch(`/api/location/search?q=${query}`);
       const data = await response.json();
-      set({ messages: data, isLoading: false });
+      set({ nearbyPlaces: data, isLoading: false });
     } catch (error) {
-      set({ error: 'Failed to fetch messages', isLoading: false });
+      set({ error: 'Failed to search places', isLoading: false });
     }
   }
 }));

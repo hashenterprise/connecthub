@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Button from '@/components/ui/button';
-import Card from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@clerk/nextjs';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useRouter } from 'next/navigation';
