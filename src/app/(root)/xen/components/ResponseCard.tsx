@@ -1,5 +1,5 @@
 import React from 'react';
-import  Card  from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Interaction } from '../types';
 import { Loader2 } from 'lucide-react';
 

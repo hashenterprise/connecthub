@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
+import  Button  from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import  Switch  from "@/components/ui/switch";
 import { useState } from "react";
 
 export default function SettingsPage() {

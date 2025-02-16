@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Card from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import AssistantHeader from './components/AssistantHeader';
 import QueryInput from './components/QueryInput';
