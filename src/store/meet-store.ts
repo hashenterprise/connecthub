@@ -1,12 +1,18 @@
 import { create } from 'zustand';
 
+interface Participant {
+  id: string;
+  name: string;
+  // Add other participant properties as needed
+}
+
 interface MeetState {
   activeRoom: string | null;
-  participants: any[];
+  participants: Participant[];
   isMuted: boolean;
   isVideoEnabled: boolean;
   setActiveRoom: (roomId: string | null) => void;
-  setParticipants: (participants: any[]) => void;
+  setParticipants: (participants: Participant[]) => void;
   toggleAudio: () => void;
   toggleVideo: () => void;
 }
