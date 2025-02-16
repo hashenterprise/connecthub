@@ -31,7 +31,7 @@ export const useLocationStore = create<LocationState>((set) => ({
       const response = await fetch(`/api/location/search?q=${query}`);
       const data = await response.json();
       set({ nearbyPlaces: data, isLoading: false });
-    } catch (err) {
+    } catch {
       set({ error: 'Failed to search places', isLoading: false });
     }
   }
