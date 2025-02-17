@@ -1,9 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { meetingErrorHandler } from './error-handler';
+import { meetingErrorHandler, MeetingError } from './error-handler';
 
 interface MediaDeviceInfo {
   deviceId: string;
   label: string;
+}
+
+interface DeviceQuality {
+  video: number;
+  audio: number;
 }
 
 interface UseMediaDevicesReturn {
@@ -13,16 +18,13 @@ interface UseMediaDevicesReturn {
   currentMicrophone: string | null;
   stream: MediaStream | null;
   isLoading: boolean;
-  error: Error | null;
+  error: MeetingError | null;
   setCamera: (deviceId: string) => Promise<void>;
   setMicrophone: (deviceId: string) => Promise<void>;
   startStream: () => Promise<void>;
   stopStream: () => void;
   checkPermissions: () => Promise<boolean>;
-  getDeviceQuality: () => Promise<{
-    video: number;
-    audio: number;
-  }>;
+  getDeviceQuality: () => Promise<DeviceQuality>;
 }
 
 export const useMediaDevices = (): UseMediaDevicesReturn => {
@@ -32,7 +34,7 @@ export const useMediaDevices = (): UseMediaDevicesReturn => {
   const [currentMicrophone, setCurrentMicrophone] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<MeetingError | null>(null);
 
   const enumerateDevices = useCallback(async () => {
     try {

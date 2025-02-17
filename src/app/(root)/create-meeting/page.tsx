@@ -6,13 +6,19 @@ import { useUser } from '@clerk/nextjs';
 import { useStreamVideoClient } from '@stream-io/video-react-sdk';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
-import { Copy, Link } from 'lucide-react';
+import { Copy } from 'lucide-react';
+
+interface CreateMeetingData {
+  starts_at: string;
+  password: string;
+  created_by: string;
+}
 
 const CreateMeeting = () => {
   const router = useRouter();
   const { user } = useUser();
   const client = useStreamVideoClient();
-  const toast = useToast();
+  const { addToast } = useToast();
 
   const [meetingPassword, setMeetingPassword] = useState('');
   const [meetingLink, setMeetingLink] = useState('');
@@ -20,40 +26,61 @@ const CreateMeeting = () => {
 
   const generateMeetingLink = () => {
     const randomId = Math.random().toString(36).substring(2, 15);
-    return `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${randomId}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) throw new Error('Base URL not configured');
+    return `${baseUrl}/meeting/${randomId}`;
   };
 
   const handleCreateMeeting = async () => {
-    if (!client || !user) return;
+    if (!client || !user) {
+      addToast({
+        title: 'Error',
+        description: 'User not authenticated',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsCreating(true);
 
     try {
       const newMeetingLink = generateMeetingLink();
       const meetingId = newMeetingLink.split('/').pop();
+      
+      if (!meetingId) throw new Error('Failed to generate meeting ID');
 
-      const newCall = client.call('default', meetingId!);
-      await newCall.getOrCreate({
-        data: {
-          starts_at: new Date().toISOString(),
-          password: meetingPassword,
-          created_by: user.id
-        },
-      });
+      const meetingData: CreateMeetingData = {
+        starts_at: new Date().toISOString(),
+        password: meetingPassword,
+        created_by: user.id
+      };
+
+      const newCall = client.call('default', meetingId);
+      await newCall.getOrCreate({ data: meetingData });
 
       setMeetingLink(newMeetingLink);
-      toast({
+      addToast({
         title: 'Meeting Created Successfully',
         description: 'You can now share the meeting link and password',
       });
     } catch (error) {
-      toast({
+      const errorMessage = error instanceof Error ? error.message : 'Please try again';
+      addToast({
         title: 'Error creating meeting',
-        description: 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleCopy = (text: string, type: 'link' | 'password') => {
+    navigator.clipboard.writeText(text);
+    addToast({ 
+      title: `${type === 'link' ? 'Link' : 'Password'} copied!`,
+      duration: 2000 
+    });
   };
 
   return (
@@ -93,10 +120,7 @@ const CreateMeeting = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(meetingLink);
-                        toast({ title: 'Link copied!' });
-                      }}
+                      onClick={() => handleCopy(meetingLink, 'link')}
                       className="text-blue-400 hover:text-blue-300"
                     >
                       <Copy className="h-4 w-4 mr-2" />
@@ -112,10 +136,7 @@ const CreateMeeting = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(meetingPassword);
-                        toast({ title: 'Password copied!' });
-                      }}
+                      onClick={() => handleCopy(meetingPassword, 'password')}
                       className="text-blue-400 hover:text-blue-300"
                     >
                       <Copy className="h-4 w-4 mr-2" />

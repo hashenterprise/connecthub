@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Button from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@clerk/nextjs';
@@ -12,29 +12,21 @@ import Link from 'next/link';
 import { useMediaDevices } from '@/hooks/useMediaDevices';
 import { useTheme } from 'next-themes';
 
+interface Participant {
+  id: number;
+  name: string;
+  isHost: boolean;
+}
+
 const MeetingInterface = () => {
   const router = useRouter();
   const { user } = useUser();
   const client = useStreamVideoClient();
   const { addToast } = useToast();
   const { theme, setTheme } = useTheme();
-  const {
-    videoDevices,
-    audioDevices,
-    currentCamera,
-    currentMicrophone,
-    stream,
-    isLoading,
-    error,
-    setCamera,
-    setMicrophone,
-    startStream,
-    stopStream,
-    checkPermissions,
-    getDeviceQuality
-  } = useMediaDevices();
+  const mediaDevices = useMediaDevices();
   
-  const [participants, setParticipants] = useState([
+  const [participants, setParticipants] = useState<Participant[]>([
     { id: 1, name: 'You', isHost: true },
   ]);
   const [isMuted, setIsMuted] = useState(false);
@@ -43,27 +35,39 @@ const MeetingInterface = () => {
   const meetingId = user?.id;
   const meetingLinkUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingId}`;
 
-  useEffect(() => {
-    const requestPermissions = async () => {
-      try {
-        await checkPermissions();
-        await startStream();
-      } catch (error) {
-        console.error('Error accessing media devices:', error);
-        addToast({
-          title: 'Permission Denied',
-          description: 'Unable to access camera and microphone',
-          variant: 'destructive',
-        });
+  const initializeMediaDevices = useCallback(async () => {
+    try {
+      const hasPermissions = await mediaDevices.checkPermissions();
+      if (!hasPermissions) {
+        throw new Error('Media permissions not granted');
       }
-    };
+      await mediaDevices.startStream();
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      addToast({
+        title: 'Permission Denied',
+        description: 'Unable to access camera and microphone',
+        variant: 'destructive',
+      });
+    }
+  }, [mediaDevices, addToast]);
 
-    requestPermissions();
-
+  useEffect(() => {
+    initializeMediaDevices();
     return () => {
-      stopStream();
+      mediaDevices.stopStream();
     };
-  }, []);
+  }, [initializeMediaDevices, mediaDevices]);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(meetingLinkUrl);
+    addToast({
+      title: 'Link Copied',
+      description: 'Meeting link copied to clipboard',
+      variant: 'success',
+      duration: 2000,
+    });
+  }, [meetingLinkUrl, addToast]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] text-white p-6">
@@ -121,12 +125,7 @@ const MeetingInterface = () => {
             </div>
             <Button
               className="bg-black/30 backdrop-blur-xl hover:bg-white/10"
-              onClick={() => {
-                navigator.clipboard.writeText(meetingLinkUrl);
-                addToast({
-                  title: 'Link Copied',
-                });
-              }}
+              onClick={handleCopyLink}
             >
               Copy Personal Meeting Link
             </Button>

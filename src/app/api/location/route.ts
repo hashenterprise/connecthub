@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import  prisma  from "@/lib/db";
+import prisma from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
@@ -15,9 +15,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(location);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: "Failed to update location" }, 
+      { error: "Failed to update location" },
       { status: 500 }
     );
   }
@@ -38,9 +38,9 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(locations);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: "Failed to fetch locations" }, 
+      { error: "Failed to fetch locations" },
       { status: 500 }
     );
   }

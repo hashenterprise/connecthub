@@ -1,12 +1,26 @@
 import React from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 interface EmojiPickerProps {
-  onEmojiClick: (event: any, emojiObject: any) => void;
+  onEmojiClick: (emojiData: EmojiClickData) => void;
+  theme?: Theme;
+  className?: string;
 }
 
-const EmojiPickerComponent: React.FC<EmojiPickerProps> = ({ onEmojiClick }) => {
-  return <EmojiPicker onEmojiClick={onEmojiClick} />;
+const EmojiPickerComponent: React.FC<EmojiPickerProps> = ({ 
+  onEmojiClick, 
+  theme = 'light',
+  className 
+}) => {
+  return (
+    <div className={className}>
+      <EmojiPicker 
+        onEmojiClick={onEmojiClick}
+        theme={theme as Theme}
+        lazyLoadEmojis={true}
+      />
+    </div>
+  );
 };
 
-export default EmojiPickerComponent;
+export default React.memo(EmojiPickerComponent);

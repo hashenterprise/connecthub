@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from 'next-themes';
 
 interface CardProps {
   children: React.ReactNode;
@@ -6,8 +7,11 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, className }) => {
+  const { theme } = useTheme();
+  const themeClasses = theme === 'light' ? 'bg-white text-black' : 'bg-indigo-950 text-white';
+
   return (
-    <div className={`bg-white shadow-md rounded-lg p-4 ${className}`}>
+    <div className={`shadow-md rounded-lg p-4 ${themeClasses} ${className}`}>
       {children}
     </div>
   );

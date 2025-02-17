@@ -1,10 +1,9 @@
-import { NextRequest } from 'next/server'
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GithubProvider from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
-import  prisma  from '@/lib/db'
+import prisma from '@/lib/db'
 
 const handler = NextAuth({
   providers: [
@@ -57,7 +56,7 @@ const handler = NextAuth({
     verifyRequest: '/verify-email',
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.role = user.role

@@ -98,6 +98,14 @@ export const ToastProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ 
       <ToastProvider>
         {children}
         <ToastViewport />
+        {toasts.map((toast) => (
+          <Toast key={toast.id} className={`toast ${toast.variant}`}>
+            <ToastTitle>{toast.title}</ToastTitle>
+            <ToastDescription>{toast.description}</ToastDescription>
+            {toast.action && <div>{toast.action}</div>}
+            <ToastClose />
+          </Toast>
+        ))}
       </ToastProvider>
     </ToastContext.Provider>
   );

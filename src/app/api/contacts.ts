@@ -16,9 +16,9 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(locations);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
-      { error: "Failed to fetch locations" }, 
+      { error: "Failed to fetch locations" },
       { status: 500 }
     );
   }

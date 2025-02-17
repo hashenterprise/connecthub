@@ -1,5 +1,6 @@
-'use client'
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useToast } from '@/components/ui/use-toast';
 import { useSocket } from '@/hooks/use-socket';
@@ -14,6 +15,7 @@ interface Contact {
   phoneNumber: string;
   lastMessage?: string;
   online?: boolean;
+  lastSeen?: Date;
 }
 
 interface Message {
@@ -22,72 +24,115 @@ interface Message {
   senderId: string;
   receiverId: string;
   createdAt: Date;
+  status: 'sent' | 'delivered' | 'read';
 }
 
-const ChatPage = () => {
+interface NewContactForm {
+  name: string;
+  email: string;
+  phoneNumber: string;
+}
+
+const ChatPage: React.FC = () => {
   const { session, user } = useAuth();
   const { addToast } = useToast();
+  const socket = useSocket();
+  
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [newContact, setNewContact] = useState({ name: '', email: '', phoneNumber: '' });
+  const [newContact, setNewContact] = useState<NewContactForm>({
+    name: '',
+    email: '',
+    phoneNumber: ''
+  });
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const socket = useSocket();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/contacts');
+      if (!response.ok) throw new Error('Failed to fetch contacts');
+      const data = await response.json();
+      setContacts(data);
+    } catch (error) {
+      addToast({
+        title: 'Error',
+        description: 'Failed to load contacts. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
 
   useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const response = await fetch('/api/contacts');
-        if (response.ok) {
-          const data = await response.json();
-          setContacts(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch contacts:', error);
+    fetchContacts();
+  }, [fetchContacts]);
+
+  useEffect(() => {
+    if (!socket || !selectedContact) return;
+
+    const handleReceiveMessage = (message: Message) => {
+      if (message.senderId === selectedContact.id || message.receiverId === selectedContact.id) {
+        setMessages(prev => [...prev, message]);
       }
     };
 
-    fetchContacts();
-  }, []);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('receiveMessage', (message: Message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+    socket.on('receiveMessage', handleReceiveMessage);
+    
+    // Mark messages as read when selecting a contact
+    socket.emit('markMessagesAsRead', {
+      contactId: selectedContact.id,
+      userId: session?.user?.id
     });
 
     return () => {
-      socket.off('receiveMessage');
+      socket.off('receiveMessage', handleReceiveMessage);
     };
-  }, [socket]);
+  }, [socket, selectedContact, session?.user?.id]);
 
-  const sendMessage = () => {
-    if (newMessage.trim() === '') return;
-    const newMsg: Message = {
-      id: Date.now().toString(),
+  const sendMessage = useCallback(async () => {
+    if (!newMessage.trim() || !selectedContact || !session?.user?.id) return;
+
+    const messageData: Omit<Message, 'id'> = {
       content: newMessage,
-      senderId: session?.user?.id || '',
-      receiverId: selectedContact?.id || '',
+      senderId: session.user.id,
+      receiverId: selectedContact.id,
       createdAt: new Date(),
+      status: 'sent'
     };
-    setMessages((prevMessages) => [...prevMessages, newMsg]);
-    setNewMessage('');
 
-    // Send the message to the server
-    socket?.emit('sendMessage', newMsg);
-  };
+    try {
+      socket?.emit('sendMessage', messageData);
+      setNewMessage('');
+    } catch (error) {
+      addToast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  }, [newMessage, selectedContact, session?.user?.id, socket, addToast]);
 
-  const addContact = async () => {
+  const addContact = useCallback(async () => {
+    if (!newContact.name || !newContact.email) {
+      addToast({
+        title: 'Validation Error',
+        description: 'Name and email are required.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const response = await fetch('/api/contacts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newContact),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newContact)
       });
 
       if (!response.ok) throw new Error('Failed to add contact');
@@ -97,17 +142,17 @@ const ChatPage = () => {
       setNewContact({ name: '', email: '', phoneNumber: '' });
       
       addToast({
-        title: "Success",
-        description: "Contact added successfully",
+        title: 'Success',
+        description: 'Contact added successfully'
       });
     } catch (error) {
       addToast({
-        title: "Error",
-        description: "Failed to add contact. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to add contact. Please try again.',
+        variant: 'destructive'
       });
     }
-  };
+  }, [newContact, addToast]);
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

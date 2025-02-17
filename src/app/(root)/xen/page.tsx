@@ -12,7 +12,7 @@ const XenAI = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { addToast } = useToast();
 
-  const handleQuery = async (query) => {
+  const handleQuery = async (query: string) => {
     const newInteraction = {
       id: Date.now(),
       query,
@@ -40,7 +40,7 @@ const XenAI = () => {
             : interaction
         )
       );
-    } catch (error) {
+    } catch {
       setInteractions((prev) =>
         prev.map((interaction) =>
           interaction.id === newInteraction.id

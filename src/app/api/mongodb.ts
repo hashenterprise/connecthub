@@ -1,28 +1,72 @@
-import { MongoClient } from 'mongodb';
+import { NextResponse } from 'next/server';
+import { getAuth } from '@clerk/nextjs/server';
+import clientPromise from '@/lib/mongodb';
 
-const uri = process.env.MONGODB_URI;
-const options = {};
-
-let client;
-let clientPromise: Promise<MongoClient>;
-
-if (!uri) {
-  throw new Error('Please add your Mongo URI to .env.local');
-}
-
-if (process.env.NODE_ENV === 'development') {
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+async function connectDB() {
+  try {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB || 'chatapp');
+    return { client, db };
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    throw new Error('Failed to connect to database');
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
 }
 
-export default clientPromise;
+export async function GET(req: Request) {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const { db } = await connectDB();
+    const contacts = await db.collection('contacts').find({ userId }).toArray();
+
+    return NextResponse.json(contacts);
+  } catch (err) {
+    console.error('GET contacts error:', err);
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal server error', details: err.message }),
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const body = await req.json();
+    const { name, email, phoneNumber } = body;
+
+    if (!name || !email) {
+      return new NextResponse('Missing required fields', { status: 400 });
+    }
+
+    const { db } = await connectDB();
+    const contact = {
+      id: crypto.randomUUID(),
+      userId,
+      name,
+      email,
+      phoneNumber,
+      avatar: `https://api.dicebear.com/7.x/avatars/svg?seed=${email}`,
+      online: false,
+      createdAt: new Date(),
+    };
+
+    await db.collection('contacts').insertOne(contact);
+
+    return NextResponse.json(contact);
+  } catch (err) {
+    console.error('POST contact error:', err);
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal server error', details: err.message }),
+      { status: 500 }
+    );
+  }
+}

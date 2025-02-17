@@ -1,5 +1,5 @@
 import { useToast } from '@/components/ui/use-toast';
-
+import React, { useEffect } from 'react';
 export class MeetingError extends Error {
   constructor(
     message: string,
@@ -10,6 +10,26 @@ export class MeetingError extends Error {
     this.name = 'MeetingError';
   }
 }
+
+interface ErrorHandlerProps {
+  error: MeetingError;
+}
+
+// New component to handle toast display
+export const ErrorDisplay: React.FC<ErrorHandlerProps> = ({ error }) => {
+  const { addToast } = useToast();
+  
+  useEffect(() => {
+    addToast({
+      title: 'Error',
+      description: error.userMessage,
+      variant: 'destructive',
+      duration: 5000,
+    });
+  }, [error, addToast]);
+  
+  return null;
+};
 
 export const meetingErrorHandler = {
   handleMediaError: (error: Error) => {
@@ -63,15 +83,6 @@ export const meetingErrorHandler = {
       'STREAM_ERROR',
       'Unable to connect to the video stream'
     );
-  },
-
-  showError: (error: MeetingError) => {
-    useToast({
-      title: 'Error',
-      description: error.userMessage,
-      variant: 'destructive',
-      duration: 5000,
-    });
   }
 };
 
@@ -85,7 +96,7 @@ export const withErrorHandler =
         return await fn(...args);
       } catch (error) {
         const handledError = errorHandler(error as Error);
-        meetingErrorHandler.showError(handledError);
+        // Instead of directly showing toast, return the error to be handled by component
         throw handledError;
       }
     };
